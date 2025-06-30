@@ -64,12 +64,17 @@
 //   }
 // }
 
+const backendURL = location.hostname === "127.0.0.1" || location.hostname === "localhost"
+  ? "http://127.0.0.1:5000"
+  : "https://yt-convert-website.onrender.com";
+
+
 async function downloadVideo() {
   const url = document.getElementById('urlInput').value;
   if (!url) return alert("Please enter a valid YouTube URL.");
 
   try {
-    const res = await fetch("https://your-backend.com/api/download", {
+    const res = await fetch(`${backendURL}/api/download`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -107,7 +112,7 @@ async function fetchFormats() {
   document.body.classList.add("loading");
 
   try {
-    const res = await fetch("https://your-render-backend.onrender.com/api/info", {
+    const res = await fetch(`${backendURL}/api/info`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url })
@@ -148,9 +153,9 @@ async function downloadSelectedFormat() {
   const isAudio = selected.audio_only;
 
   document.body.classList.add("loading");
-
+// https://yt-convert-website.onrender.com
   try {
-    const res = await fetch("https://your-render-backend.onrender.com/api/download", {
+    const res = await fetch(`${backendURL}/api/download`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: selectedURL, format, audio: isAudio })
