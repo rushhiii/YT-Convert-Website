@@ -1,0 +1,41 @@
+{
+  "name": "yt-convert-website",
+  "version": "1.0.0",
+  "description": "YouTube Converter Website",
+  "main": "ZArchived/server/server.js",
+  "scripts": {
+    "start": "node ZArchived/server/server.js",
+    "dev": "nodemon ZArchived/server/server.js",
+    "build": "echo 'Build complete'"
+  },
+  "keywords": [
+    "youtube",
+    "converter",
+    "nodejs",
+    "express"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "multer": "^1.4.5-lts.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "helmet": "^7.0.0",
+    "compression": "^1.7.4",
+    "rate-limiter-flexible": "^3.0.8",
+    "express-validator": "^7.0.1",
+    "winston": "^3.10.0",
+    "express-rate-limit": "^6.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}
