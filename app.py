@@ -1,6 +1,6 @@
 # yt_converter_backend/app.py
 
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory, render_template_string
 from flask_cors import CORS
 import yt_dlp
 import os
@@ -12,10 +12,20 @@ from mutagen.mp4 import MP4, MP4Cover
 import requests
 from io import BytesIO
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)  # Enable CORS for all routes
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+# Serve the main HTML file
+@app.route('/')
+def serve_index():
+    return send_file('index.html')
+
+# Serve static assets
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    return send_from_directory('assets', filename)
 
 @app.route("/api/info", methods=["POST"])
 def get_info():
