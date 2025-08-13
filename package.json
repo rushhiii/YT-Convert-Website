@@ -2,20 +2,29 @@
   "name": "yt-convert-website",
   "version": "1.0.0",
   "description": "YouTube Converter Website",
-  "main": "ZArchived/server/server.js",
-  "scripts": {
-    "start": "node ZArchived/server/server.js",
-    "dev": "nodemon ZArchived/server/server.js",
-    "build": "echo 'Build complete'"
-  },
   "keywords": [
     "youtube",
     "converter",
     "nodejs",
     "express"
   ],
-  "author": "Your Name",
+  "homepage": "https://github.com/rushhiii/YT-Convert-Website#readme",
+  "bugs": {
+    "url": "https://github.com/rushhiii/YT-Convert-Website/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rushhiii/YT-Convert-Website.git"
+  },
   "license": "MIT",
+  "author": "Your Name",
+  "type": "commonjs",
+  "main": "ZArchived/server/server.js",
+  "scripts": {
+    "start": "node ZArchived/server/server.js",
+    "dev": "nodemon ZArchived/server/server.js",
+    "build": "echo 'Build complete'"
+  },
   "dependencies": {
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
