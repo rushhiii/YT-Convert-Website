@@ -1,21 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Converter - Download Videos & Audio</title>
+    <link rel="stylesheet" href="./assets/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-
 <body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fab fa-youtube"></i>
+                <h1>YT Converter</h1>
+            </div>
+            <p class="tagline">Download YouTube videos in multiple formats</p>
+        </div>
+    </header>
 
-  <div style="text-align:center;">
-    This is my text.
-  </div>
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- URL Input Section -->
+            <section class="input-section">
+                <div class="input-group">
+                    <input type="text" id="urlInput" placeholder="Paste YouTube URL here..." class="url-input">
+                    <button id="getInfoBtn" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Get Info
+                    </button>
+                </div>
+                <div class="loading" id="loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Getting video information...</span>
+                </div>
+            </section>
 
-  <script href="./assets/js/script.js"></script>
+            <!-- Video Info Section -->
+            <section class="video-info" id="videoInfo" style="display: none;">
+                <div class="video-card">
+                    <div class="video-thumbnail">
+                        <img id="videoThumbnail" src="" alt="Video Thumbnail">
+                        <div class="video-duration" id="videoDuration"></div>
+                    </div>
+                    <div class="video-details">
+                        <h2 id="videoTitle"></h2>
+                        <p class="video-author">
+                            <i class="fas fa-user"></i>
+                            <span id="videoAuthor"></span>
+                        </p>
+                        <p class="video-stats">
+                            <span><i class="fas fa-eye"></i> <span id="videoViews"></span> views</span>
+                            <span><i class="fas fa-clock"></i> <span id="videoLength"></span></span>
+                        </p>
+                        <p class="video-description" id="videoDescription"></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Format Selection -->
+            <section class="format-section" id="formatSection" style="display: none;">
+                <div class="format-tabs">
+                                        <button class="tab-btn" data-tab="video">
+                        <i class="fas fa-video"></i>
+                        Video
+                    </button>
+                    <button class="tab-btn active" data-tab="audio">
+                        <i class="fas fa-music"></i>
+                        Audio
+                    </button>
+                </div>
+
+                <!-- Video Formats -->
+                <div class="format-content" id="videoFormats">
+                    <h3>Available Video Formats</h3>
+                    <div class="format-grid" id="videoFormatGrid">
+                        <!-- Video formats will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Audio Formats -->
+                <div class="format-content active" id="audioFormats">
+                    <h3>Available Audio Formats</h3>
+                    <div class="format-grid" id="audioFormatGrid">
+                        <!-- Audio formats will be populated here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Download Progress -->
+            <section class="download-section" id="downloadSection" style="display: none;">
+                <div class="download-progress">
+                    <i class="fas fa-download"></i>
+                    <span>Preparing download...</span>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 YT Converter. Built with ❤️ for easy YouTube downloads.</p>
+            <p class="disclaimer">For personal use only. Respect copyright laws.</p>
+        </div>
+    </footer>
+
+    <script src="./assets/js/script.js"></script>
 </body>
-
 </html>
-<!-- just do it. -->

@@ -19,28 +19,17 @@
   "license": "MIT",
   "author": "Your Name",
   "type": "commonjs",
-  "main": "ZArchived/server/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node ZArchived/server/server.js",
-    "dev": "nodemon ZArchived/server/server.js",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
     "build": "echo 'Build complete'"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "compression": "^1.7.4",
+    "@distube/ytdl-core": "^4.16.12",
+    "archiver": "^7.0.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.6.1",
-    "ejs": "^3.1.10",
-    "express": "^4.21.2",
-    "express-rate-limit": "^6.10.0",
-    "express-validator": "^7.0.1",
-    "helmet": "^7.0.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^7.5.0",
-    "multer": "^1.4.5-lts.1",
-    "node-fetch": "^2.7.0",
-    "rate-limiter-flexible": "^2.4.2",
-    "winston": "^3.10.0"
+    "express": "^4.21.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
