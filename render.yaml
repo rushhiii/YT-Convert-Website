@@ -1,11 +1,9 @@
 services:
   - type: web
     name: yt-convert-website
-    env: node
-    region: oregon
+    env: docker
     plan: free
-    buildCommand: npm ci
-    startCommand: node server.js
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: NODE_ENV
         value: production
