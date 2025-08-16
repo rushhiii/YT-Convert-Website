@@ -1,3 +1,0 @@
-# Dummy requirement to satisfy Render's Python detection
-# This project actually uses Node.js - see render.yaml
-setuptools
