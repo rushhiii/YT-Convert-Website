@@ -2,14 +2,13 @@ services:
   - type: web
     name: yt-convert-website
     env: node
-    runtime: node
-    buildCommand: |
-      npm install --production=false
-      npm run build
-    startCommand: npm start
+    region: oregon
     plan: free
+    buildCommand: npm ci
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+    healthCheckPath: /api/health
