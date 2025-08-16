@@ -1,14 +1,18 @@
-// YouTube Converter - JavaScript
+// YouTube Converter - JavaScript with Samsung Music Clone UI
 
 class YouTubeConverter {
     constructor() {
         this.currentVideoData = null;
+        this.currentView = 'grid';
+        this.downloads = [];
         this.init();
     }
 
     init() {
         this.bindEvents();
         this.setupTabs();
+        this.setupViewSwitching();
+        this.loadDownloads();
     }
 
     bindEvents() {
@@ -36,24 +40,93 @@ class YouTubeConverter {
                 }, 100);
             });
         }
+
+        // View controls
+        const viewBtns = document.querySelectorAll('.view-btn');
+        viewBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const viewType = btn.dataset.view;
+                this.switchViewMode(viewType);
+            });
+        });
+
+        // Quality sort
+        const qualitySort = document.getElementById('qualitySort');
+        if (qualitySort) {
+            qualitySort.addEventListener('change', () => {
+                this.sortFormats();
+            });
+        }
     }
 
     setupTabs() {
-        const tabBtns = document.querySelectorAll('.tab-btn');
+        // Navigation tabs
+        const navTabs = document.querySelectorAll('.nav-tab[data-view]');
+        navTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetView = tab.dataset.view;
+                this.switchMainView(targetView);
+            });
+        });
+
+        // Format tabs
+        const formatTabs = document.querySelectorAll('.nav-tab[data-tab]');
         const tabContents = document.querySelectorAll('.format-content');
 
-        tabBtns.forEach(btn => {
+        formatTabs.forEach(btn => {
             btn.addEventListener('click', () => {
                 const targetTab = btn.dataset.tab;
                 
                 // Remove active from all tabs
-                tabBtns.forEach(b => b.classList.remove('active'));
+                formatTabs.forEach(b => b.classList.remove('active'));
                 tabContents.forEach(c => c.classList.remove('active'));
                 
                 // Add active to clicked tab
                 btn.classList.add('active');
                 document.getElementById(`${targetTab}Formats`).classList.add('active');
             });
+        });
+    }
+
+    setupViewSwitching() {
+        // This handles grid/list view switching for formats
+    }
+
+    switchMainView(viewName) {
+        // Remove active from all nav tabs
+        const navTabs = document.querySelectorAll('.nav-tab[data-view]');
+        navTabs.forEach(tab => tab.classList.remove('active'));
+        
+        // Add active to clicked tab
+        const activeTab = document.querySelector(`.nav-tab[data-view="${viewName}"]`);
+        if (activeTab) activeTab.classList.add('active');
+        
+        // Switch views
+        const views = document.querySelectorAll('.view');
+        views.forEach(view => view.classList.remove('active'));
+        
+        const targetView = document.getElementById(`${viewName}View`);
+        if (targetView) targetView.classList.add('active');
+    }
+
+    switchViewMode(mode) {
+        this.currentView = mode;
+        
+        // Update view buttons
+        const viewBtns = document.querySelectorAll('.view-btn');
+        viewBtns.forEach(btn => btn.classList.remove('active'));
+        
+        const activeBtn = document.querySelector(`.view-btn[data-view="${mode}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+        
+        // Update grid classes
+        const grids = document.querySelectorAll('.music-grid');
+        grids.forEach(grid => {
+            if (mode === 'list') {
+                grid.classList.add('list-view');
+            } else {
+                grid.classList.remove('list-view');
+            }
         });
     }
 
@@ -81,6 +154,7 @@ class YouTubeConverter {
             this.hideError();
             this.hideVideoInfo();
             this.hideFormatSection();
+            this.hideEmptyState();
 
             const response = await fetch('/api/info', {
                 method: 'POST',
@@ -103,6 +177,7 @@ class YouTubeConverter {
         } catch (error) {
             console.error('Error:', error);
             this.showError(error.message || 'Failed to get video information');
+            this.showEmptyState();
         } finally {
             this.showLoading(false);
         }
@@ -139,17 +214,9 @@ class YouTubeConverter {
 
         // Update video duration
         const duration = document.getElementById('videoDuration');
-        const length = document.getElementById('videoLength');
         const formattedDuration = this.formatDuration(videoDetails.lengthSeconds);
         
         if (duration) duration.textContent = formattedDuration;
-        if (length) length.textContent = formattedDuration;
-
-        // Update video description
-        const description = document.getElementById('videoDescription');
-        if (description) {
-            description.textContent = videoDetails.description || 'No description available';
-        }
 
         this.showVideoInfo();
     }
@@ -173,7 +240,9 @@ class YouTubeConverter {
         if (formats.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <p>No ${type} formats available</p>
+                    <i class="fas fa-${type === 'audio' ? 'music' : 'video'}"></i>
+                    <h3>No ${type} formats available</h3>
+                    <p>This video doesn't have ${type} formats available for download.</p>
                 </div>
             `;
             return;
@@ -201,8 +270,8 @@ class YouTubeConverter {
                 <div class="format-info">
                     <h4>${qualityText}</h4>
                     <div class="format-details">
-                        <span>Container: ${containerText}</span>
-                        ${format.fps ? `<span>• ${format.fps} FPS</span>` : ''}
+                        <span>Format: ${containerText}</span>
+                        ${format.fps ? ` • ${format.fps} FPS` : ''}
                     </div>
                     <div class="format-size">${sizeText}</div>
                 </div>
@@ -223,7 +292,7 @@ class YouTubeConverter {
         }
 
         try {
-            this.showDownloadProgress();
+            this.showDownloadModal();
 
             const url = document.getElementById('urlInput').value;
             
@@ -252,7 +321,7 @@ class YouTubeConverter {
             
             // Get filename from content-disposition header or create one
             const contentDisposition = response.headers.get('content-disposition');
-            let filename = `video.${type === 'audio' ? 'mp3' : 'mp4'}`;
+            let filename = `video.${type === 'audio' ? 'mp4' : 'mp4'}`;
             
             if (contentDisposition) {
                 const filenameMatch = contentDisposition.match(/filename="(.+)"/);
@@ -267,13 +336,103 @@ class YouTubeConverter {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(downloadUrl);
 
-            this.hideDownloadProgress();
-            this.showSuccess('Download started successfully!');
+            // Add to downloads history
+            this.addToDownloads({
+                title: this.currentVideoData.videoDetails.title,
+                author: this.currentVideoData.videoDetails.author,
+                thumbnail: this.currentVideoData.videoDetails.thumbnail,
+                type: type,
+                quality: itag,
+                filename: filename,
+                downloadDate: new Date().toISOString()
+            });
+
+            this.hideDownloadModal();
+            this.showSuccess('Download completed successfully!');
 
         } catch (error) {
             console.error('Download error:', error);
-            this.hideDownloadProgress();
+            this.hideDownloadModal();
             this.showError(error.message || 'Download failed');
+        }
+    }
+
+    addToDownloads(downloadInfo) {
+        this.downloads.unshift(downloadInfo);
+        // Keep only last 50 downloads
+        if (this.downloads.length > 50) {
+            this.downloads = this.downloads.slice(0, 50);
+        }
+        this.saveDownloads();
+        this.renderDownloads();
+    }
+
+    loadDownloads() {
+        const stored = localStorage.getItem('yt-converter-downloads');
+        if (stored) {
+            try {
+                this.downloads = JSON.parse(stored);
+            } catch (e) {
+                this.downloads = [];
+            }
+        }
+        this.renderDownloads();
+    }
+
+    saveDownloads() {
+        localStorage.setItem('yt-converter-downloads', JSON.stringify(this.downloads));
+    }
+
+    renderDownloads() {
+        const container = document.getElementById('downloadsGrid');
+        if (!container) return;
+
+        if (this.downloads.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-download"></i>
+                    <h3>No Downloads Yet</h3>
+                    <p>Your downloaded files will appear here.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+        this.downloads.forEach(download => {
+            const downloadItem = document.createElement('div');
+            downloadItem.className = 'music-item';
+            
+            const downloadDate = new Date(download.downloadDate).toLocaleDateString();
+            
+            downloadItem.innerHTML = `
+                <div class="music-artwork">
+                    <img src="${download.thumbnail}" alt="${download.title}">
+                    <div class="play-overlay">
+                        <i class="fas fa-${download.type === 'audio' ? 'music' : 'video'}"></i>
+                    </div>
+                </div>
+                <div class="music-info">
+                    <div class="music-title">${download.title}</div>
+                    <div class="music-artist">${download.author}</div>
+                    <div class="music-duration">${download.type.toUpperCase()} • ${downloadDate}</div>
+                </div>
+            `;
+            
+            container.appendChild(downloadItem);
+        });
+    }
+
+    clearDownloads() {
+        this.downloads = [];
+        this.saveDownloads();
+        this.renderDownloads();
+    }
+
+    sortFormats() {
+        // Implementation for sorting formats
+        if (this.currentVideoData && this.currentVideoData.formats) {
+            this.displayFormats(this.currentVideoData.formats);
         }
     }
 
@@ -321,30 +480,31 @@ class YouTubeConverter {
     }
 
     showError(message) {
-        const errorDiv = document.getElementById('error');
-        if (!errorDiv) {
-            // Create error div if it doesn't exist
-            const inputSection = document.querySelector('.input-section');
-            const errorHtml = `
-                <div id="error" class="alert alert-error">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-            inputSection.insertAdjacentHTML('afterend', errorHtml);
-        } else {
-            errorDiv.innerHTML = `
+        // Remove existing error
+        const existingError = document.querySelector('.alert-error');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        const converterView = document.getElementById('converterView');
+        const errorHtml = `
+            <div class="alert alert-error">
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>${message}</span>
-            `;
-            errorDiv.style.display = 'flex';
-        }
+            </div>
+        `;
+        converterView.insertAdjacentHTML('afterbegin', errorHtml);
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            this.hideError();
+        }, 5000);
     }
 
     hideError() {
-        const error = document.getElementById('error');
+        const error = document.querySelector('.alert-error');
         if (error) {
-            error.style.display = 'none';
+            error.remove();
         }
     }
 
@@ -355,14 +515,14 @@ class YouTubeConverter {
             existingSuccess.remove();
         }
 
-        const inputSection = document.querySelector('.input-section');
+        const converterView = document.getElementById('converterView');
         const successHtml = `
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i>
                 <span>${message}</span>
             </div>
         `;
-        inputSection.insertAdjacentHTML('afterend', successHtml);
+        converterView.insertAdjacentHTML('afterbegin', successHtml);
 
         // Auto-hide after 5 seconds
         setTimeout(() => {
@@ -401,17 +561,46 @@ class YouTubeConverter {
         }
     }
 
-    showDownloadProgress() {
-        const downloadSection = document.getElementById('downloadSection');
-        if (downloadSection) {
-            downloadSection.style.display = 'block';
+    showEmptyState() {
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) {
+            emptyState.style.display = 'block';
         }
     }
 
-    hideDownloadProgress() {
-        const downloadSection = document.getElementById('downloadSection');
-        if (downloadSection) {
-            downloadSection.style.display = 'none';
+    hideEmptyState() {
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) {
+            emptyState.style.display = 'none';
+        }
+    }
+
+    showDownloadModal() {
+        const modal = document.getElementById('downloadModal');
+        if (modal) {
+            modal.classList.add('show');
+            
+            // Update status
+            const status = document.getElementById('downloadStatus');
+            if (status) {
+                status.textContent = 'Preparing download...';
+            }
+            
+            // Animate progress
+            const progress = document.getElementById('downloadProgress');
+            if (progress) {
+                progress.style.width = '0%';
+                setTimeout(() => {
+                    progress.style.width = '100%';
+                }, 100);
+            }
+        }
+    }
+
+    hideDownloadModal() {
+        const modal = document.getElementById('downloadModal');
+        if (modal) {
+            modal.classList.remove('show');
         }
     }
 }
@@ -425,6 +614,6 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('beforeunload', () => {
     // Clean up any ongoing operations
     if (window.app) {
-        window.app.hideDownloadProgress();
+        window.app.hideDownloadModal();
     }
 });

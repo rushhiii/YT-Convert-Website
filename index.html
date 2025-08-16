@@ -3,109 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Converter - Download Videos & Audio</title>
+    <title>YT Converter - Download YouTube Videos & Audio</title>
     <link rel="stylesheet" href="./assets/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">
-                <i class="fab fa-youtube"></i>
-                <h1>YT Converter</h1>
-            </div>
-            <p class="tagline">Download YouTube videos in multiple formats</p>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="main">
-        <div class="container">
-            <!-- URL Input Section -->
-            <section class="input-section">
-                <div class="input-group">
-                    <input type="text" id="urlInput" placeholder="Paste YouTube URL here..." class="url-input">
-                    <button id="getInfoBtn" class="btn btn-primary">
-                        <i class="fas fa-search"></i>
-                        Get Info
-                    </button>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fab fa-youtube"></i>
+                    <span>YT Converter</span>
                 </div>
+                <nav class="nav-tabs">
+                    <button class="nav-tab active" data-view="converter">
+                        <i class="fas fa-download"></i>
+                        Converter
+                    </button>
+                    <button class="nav-tab" data-view="downloads">
+                        <i class="fas fa-folder-open"></i>
+                        Downloads
+                    </button>
+                </nav>
+            </div>
+            
+            <div class="header-center">
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="urlInput" placeholder="Paste YouTube URL here..." class="url-input">
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <button class="upload-btn" id="getInfoBtn">
+                    <i class="fas fa-search"></i>
+                    Get Info
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Converter View -->
+            <div class="view active" id="converterView">
+                <div class="view-header">
+                    <h1>YouTube Converter</h1>
+                    <div class="controls">
+                        <div class="sort-controls">
+                            <label for="qualitySort">Sort by:</label>
+                            <select id="qualitySort">
+                                <option value="quality">Quality</option>
+                                <option value="size">File Size</option>
+                                <option value="format">Format</option>
+                            </select>
+                        </div>
+                        <div class="view-controls">
+                            <button class="view-btn active" data-view="grid">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="view-btn" data-view="list">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
                 <div class="loading" id="loading" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i>
                     <span>Getting video information...</span>
                 </div>
-            </section>
 
-            <!-- Video Info Section -->
-            <section class="video-info" id="videoInfo" style="display: none;">
-                <div class="video-card">
-                    <div class="video-thumbnail">
-                        <img id="videoThumbnail" src="" alt="Video Thumbnail">
-                        <div class="video-duration" id="videoDuration"></div>
+                <!-- Video Info Section -->
+                <section class="video-info" id="videoInfo" style="display: none;">
+                    <div class="music-item">
+                        <div class="music-artwork">
+                            <img id="videoThumbnail" src="" alt="Video Thumbnail">
+                            <div class="play-overlay">
+                                <i class="fas fa-play"></i>
+                            </div>
+                        </div>
+                        <div class="music-info">
+                            <div class="music-title" id="videoTitle"></div>
+                            <div class="music-artist" id="videoAuthor"></div>
+                            <div class="music-duration" id="videoDuration"></div>
+                            <div class="video-stats">
+                                <span><i class="fas fa-eye"></i> <span id="videoViews"></span></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="video-details">
-                        <h2 id="videoTitle"></h2>
-                        <p class="video-author">
-                            <i class="fas fa-user"></i>
-                            <span id="videoAuthor"></span>
-                        </p>
-                        <p class="video-stats">
-                            <span><i class="fas fa-eye"></i> <span id="videoViews"></span> views</span>
-                            <span><i class="fas fa-clock"></i> <span id="videoLength"></span></span>
-                        </p>
-                        <p class="video-description" id="videoDescription"></p>
+                </section>
+
+                <!-- Format Selection -->
+                <section class="format-section" id="formatSection" style="display: none;">
+                    <div class="format-tabs">
+                        <button class="nav-tab active" data-tab="audio">
+                            <i class="fas fa-music"></i>
+                            Audio
+                        </button>
+                        <button class="nav-tab" data-tab="video">
+                            <i class="fas fa-video"></i>
+                            Video
+                        </button>
+                    </div>
+
+                    <!-- Audio Formats -->
+                    <div class="format-content active" id="audioFormats">
+                        <div class="music-grid" id="audioFormatGrid">
+                            <!-- Audio formats will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Video Formats -->
+                    <div class="format-content" id="videoFormats">
+                        <div class="music-grid" id="videoFormatGrid">
+                            <!-- Video formats will be populated here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState">
+                    <i class="fab fa-youtube"></i>
+                    <h3>Ready to Download</h3>
+                    <p>Paste a YouTube URL above to get started with downloading your favorite videos and music.</p>
+                </div>
+            </div>
+
+            <!-- Downloads View -->
+            <div class="view" id="downloadsView">
+                <div class="view-header">
+                    <h1>Recent Downloads</h1>
+                    <div class="controls">
+                        <button class="btn-secondary" onclick="app.clearDownloads()">
+                            <i class="fas fa-trash"></i>
+                            Clear All
+                        </button>
                     </div>
                 </div>
-            </section>
-
-            <!-- Format Selection -->
-            <section class="format-section" id="formatSection" style="display: none;">
-                <div class="format-tabs">
-                                        <button class="tab-btn" data-tab="video">
-                        <i class="fas fa-video"></i>
-                        Video
-                    </button>
-                    <button class="tab-btn active" data-tab="audio">
-                        <i class="fas fa-music"></i>
-                        Audio
-                    </button>
-                </div>
-
-                <!-- Video Formats -->
-                <div class="format-content" id="videoFormats">
-                    <h3>Available Video Formats</h3>
-                    <div class="format-grid" id="videoFormatGrid">
-                        <!-- Video formats will be populated here -->
+                
+                <div class="music-grid" id="downloadsGrid">
+                    <div class="empty-state">
+                        <i class="fas fa-download"></i>
+                        <h3>No Downloads Yet</h3>
+                        <p>Your downloaded files will appear here.</p>
                     </div>
                 </div>
+            </div>
+        </main>
 
-                <!-- Audio Formats -->
-                <div class="format-content active" id="audioFormats">
-                    <h3>Available Audio Formats</h3>
-                    <div class="format-grid" id="audioFormatGrid">
-                        <!-- Audio formats will be populated here -->
-                    </div>
-                </div>
-            </section>
-
-            <!-- Download Progress -->
-            <section class="download-section" id="downloadSection" style="display: none;">
+        <!-- Download Progress Modal -->
+        <div class="modal" id="downloadModal">
+            <div class="modal-content">
+                <h2>Downloading...</h2>
                 <div class="download-progress">
                     <i class="fas fa-download"></i>
-                    <span>Preparing download...</span>
+                    <span id="downloadStatus">Preparing download...</span>
                 </div>
-            </section>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="downloadProgress"></div>
+                </div>
+            </div>
         </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2025 YT Converter. Built with ❤️ for easy YouTube downloads.</p>
-            <p class="disclaimer">For personal use only. Respect copyright laws.</p>
-        </div>
-    </footer>
+    </div>
 
     <script src="./assets/js/script.js"></script>
 </body>
