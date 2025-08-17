@@ -167,7 +167,17 @@ class YouTubeConverter {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to get video information');
+                // Handle specific error types
+                if (response.status === 429) {
+                    const retryAfter = data.retryAfter ? ` Please try again in ${data.retryAfter} seconds.` : ' Please wait a few minutes before trying again.';
+                    throw new Error((data.error || 'Rate limit exceeded.') + retryAfter);
+                } else if (response.status === 404) {
+                    throw new Error(data.error || 'Video not found or unavailable.');
+                } else if (response.status === 410) {
+                    throw new Error(data.error || 'Video has been removed or is no longer available.');
+                } else {
+                    throw new Error(data.error || 'Failed to get video information');
+                }
             }
 
             this.currentVideoData = data;

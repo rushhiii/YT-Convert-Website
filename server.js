@@ -10,10 +10,52 @@ const archiver = require('archiver');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Environment variable to disable update checks
+process.env.YTDL_NO_UPDATE = '1';
+
+// Rate limiting variables
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 5; // Max 5 requests per minute per IP
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
+
+// Rate limiting middleware
+const rateLimit = (req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    
+    if (!rateLimitMap.has(clientIP)) {
+        rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+        return next();
+    }
+    
+    const clientData = rateLimitMap.get(clientIP);
+    
+    if (now > clientData.resetTime) {
+        // Reset the rate limit window
+        rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+        return next();
+    }
+    
+    if (clientData.count >= MAX_REQUESTS_PER_WINDOW) {
+        return res.status(429).json({
+            error: 'Too many requests. Please wait a minute before trying again.',
+            suggestion: 'Our service is rate-limited to prevent overuse. Please be patient.',
+            retryAfter: Math.ceil((clientData.resetTime - now) / 1000)
+        });
+    }
+    
+    clientData.count++;
+    next();
+};
+
+// Apply rate limiting to API endpoints
+app.use('/api/info', rateLimit);
+app.use('/api/download', rateLimit);
 
 // Serve main page
 app.get('/', (req, res) => {
@@ -115,27 +157,35 @@ app.post('/api/info', async (req, res) => {
             // Provide specific error messages based on the type of error
             let errorMessage = 'Failed to get video information. ';
             let suggestion = 'Please try again in a few minutes or try a different video.';
+            let statusCode = 503;
             
-            if (lastError?.message.includes('Could not extract functions')) {
+            if (lastError?.message.includes('Status code: 429')) {
+                errorMessage = 'YouTube is currently rate limiting our service.';
+                suggestion = 'Please wait 5-10 minutes before trying again. This is a temporary restriction from YouTube.';
+                statusCode = 429;
+            } else if (lastError?.message.includes('Could not extract functions')) {
                 errorMessage += 'YouTube has updated their system and our current method needs updating.';
                 suggestion = 'This is a temporary issue. Please try again later or contact support if the problem persists.';
             } else if (lastError?.message.includes('410') || lastError?.message.includes('Status code: 410')) {
                 errorMessage += 'This video is no longer available or has been removed.';
                 suggestion = 'Please check if the video still exists on YouTube and try a different URL.';
+                statusCode = 410;
             } else if (lastError?.message.includes('Video unavailable')) {
                 errorMessage += 'This video is private, deleted, or restricted in your region.';
                 suggestion = 'Try a different public video that is available in your region.';
+                statusCode = 404;
             } else if (lastError?.message.includes('Timeout')) {
                 errorMessage += 'Request timed out. YouTube servers might be slow.';
                 suggestion = 'Try again in a few minutes when YouTube servers are more responsive.';
+                statusCode = 408;
             } else {
                 errorMessage += 'YouTube API temporarily unavailable.';
             }
             
-            return res.status(503).json({ 
+            return res.status(statusCode).json({ 
                 error: errorMessage,
                 suggestion: suggestion,
-                details: 'Our service is experiencing connectivity issues with YouTube. This is usually temporary.'
+                details: statusCode === 429 ? 'Rate limit from YouTube. This will reset automatically.' : 'Our service is experiencing connectivity issues with YouTube. This is usually temporary.'
             });
         }
 
