@@ -15,8 +15,46 @@ process.env.YTDL_NO_UPDATE = '1';
 
 // Rate limiting variables
 const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 5; // Max 5 requests per minute per IP
+const RATE_LIMIT_WINDOW = 120000; // 2 minutes
+const MAX_REQUESTS_PER_WINDOW = 3; // Max 3 requests per 2 minutes per IP
+
+// Simple cache to reduce YouTube requests
+const videoCache = new Map();
+const CACHE_DURATION = 300000; // 5 minutes
+
+// Request deduplication to prevent multiple concurrent requests for same video
+const pendingRequests = new Map();
+
+// Helper functions for disguising requests
+function getRandomUserAgent() {
+    const userAgents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Safari/605.1.15',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    ];
+    return userAgents[Math.floor(Math.random() * userAgents.length)];
+}
+
+function getRandomMobileUserAgent() {
+    const mobileUserAgents = [
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Android 14; Mobile; rv:124.0) Gecko/124.0 Firefox/124.0',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/122.0.6261.89 Mobile/15E148 Safari/604.1'
+    ];
+    return mobileUserAgents[Math.floor(Math.random() * mobileUserAgents.length)];
+}
+
+function getRandomIP() {
+    // Generate random residential-looking IP addresses
+    const ranges = [
+        () => `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+        () => `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+        () => `172.${16 + Math.floor(Math.random() * 15)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`
+    ];
+    return ranges[Math.floor(Math.random() * ranges.length)]();
+}
 
 // Middleware
 app.use(cors());
@@ -88,47 +126,92 @@ app.post('/api/info', async (req, res) => {
             return res.status(400).json({ error: 'Invalid YouTube URL' });
         }
 
-        // Try different approaches to get video info with more aggressive retry
+        // Check cache first to reduce YouTube requests
+        const cacheKey = videoId;
+        const cachedData = videoCache.get(cacheKey);
+        if (cachedData && (Date.now() - cachedData.timestamp) < CACHE_DURATION) {
+            console.log(`✅ Cache hit for video: ${videoId}`);
+            return res.json(cachedData.data);
+        }
+
+        // Check if there's already a pending request for this video
+        if (pendingRequests.has(cacheKey)) {
+            console.log(`⏳ Waiting for pending request for video: ${videoId}`);
+            try {
+                const result = await pendingRequests.get(cacheKey);
+                return res.json(result);
+            } catch (error) {
+                console.log(`❌ Pending request failed for video: ${videoId}`);
+                // Continue to make our own request
+            }
+        }
+
+        // Try different approaches to get video info with hosting-optimized settings
         let info;
         const attempts = [
-            // Attempt 1: Standard approach with timeout
-            () => Promise.race([
-                ytdl.getInfo(cleanUrl),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 15 seconds')), 15000))
-            ]),
-            
-            // Attempt 2: With updated headers to mimic browser
+            // Attempt 1: Residential-like headers with random elements
             () => Promise.race([
                 ytdl.getInfo(cleanUrl, {
                     requestOptions: {
                         headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                            'Accept-Language': 'en-US,en;q=0.9',
-                            'Accept-Encoding': 'gzip, deflate, br',
+                            'User-Agent': getRandomUserAgent(),
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                            'Accept-Language': 'en-US,en;q=0.5',
+                            'Accept-Encoding': 'gzip, deflate',
                             'DNT': '1',
                             'Connection': 'keep-alive',
                             'Upgrade-Insecure-Requests': '1',
                             'Sec-Fetch-Dest': 'document',
                             'Sec-Fetch-Mode': 'navigate',
                             'Sec-Fetch-Site': 'none',
-                            'Cache-Control': 'max-age=0'
+                            'Cache-Control': 'max-age=0',
+                            'X-Forwarded-For': getRandomIP(),
+                            'X-Real-IP': getRandomIP()
                         }
                     }
                 }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 12 seconds')), 12000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 25 seconds')), 25000))
             ]),
             
-            // Attempt 3: Try getBasicInfo which might work even when getInfo fails
+            // Attempt 2: Try with basic info only (less suspicious)
             () => Promise.race([
-                ytdl.getBasicInfo(cleanUrl),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 10 seconds')), 10000))
+                ytdl.getBasicInfo(cleanUrl, {
+                    requestOptions: {
+                        headers: {
+                            'User-Agent': getRandomUserAgent(),
+                            'Accept': '*/*',
+                            'X-Forwarded-For': getRandomIP()
+                        }
+                    }
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 20 seconds')), 20000))
+            ]),
+            
+            // Attempt 3: Mobile user agent (often less restricted)
+            () => Promise.race([
+                ytdl.getInfo(cleanUrl, {
+                    requestOptions: {
+                        headers: {
+                            'User-Agent': getRandomMobileUserAgent(),
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language': 'en-US,en;q=0.5',
+                            'X-Forwarded-For': getRandomIP()
+                        }
+                    }
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 15 seconds')), 15000))
             ]),
 
-            // Attempt 4: Try with different quality setting
+            // Attempt 4: Last resort with minimal headers
             () => Promise.race([
-                ytdl.getInfo(cleanUrl, { quality: 'highest' }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 8 seconds')), 8000))
+                ytdl.getBasicInfo(cleanUrl, {
+                    requestOptions: {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2)'
+                        }
+                    }
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 10 seconds')), 10000))
             ])
         ];
 
@@ -143,10 +226,15 @@ app.post('/api/info', async (req, res) => {
                 console.log(`❌ Attempt ${i + 1} failed:`, error.message);
                 lastError = error;
                 
-                // Add delay between attempts
+                // Add exponential backoff delays for hosting environments
                 if (i < attempts.length - 1) {
-                    console.log('⏳ Waiting 2 seconds before next attempt...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    const baseDelay = 8000; // Start with 8 seconds
+                    const delay = Math.min(baseDelay * Math.pow(2, i), 30000); // Exponential backoff, max 30s
+                    const jitter = Math.random() * 2000; // Add random jitter to avoid patterns
+                    const totalDelay = delay + jitter;
+                    
+                    console.log(`⏳ Waiting ${Math.round(totalDelay/1000)} seconds before next attempt (hosting optimization)...`);
+                    await new Promise(resolve => setTimeout(resolve, totalDelay));
                 }
             }
         }
@@ -282,14 +370,32 @@ app.post('/api/info', async (req, res) => {
         console.log('Successfully extracted video info for:', videoDetails.title);
         console.log(`Found ${videoFormats.length} video formats and ${audioFormats.length} audio formats`);
 
-        res.json({
+        const responseData = {
             success: true,
             videoDetails,
             formats: {
                 audio: audioFormats,  // Show audio formats first as default
                 video: videoFormats
             }
+        };
+
+        // Cache the successful response
+        videoCache.set(cacheKey, {
+            data: responseData,
+            timestamp: Date.now()
         });
+
+        // Clean old cache entries periodically
+        if (videoCache.size > 100) {
+            const now = Date.now();
+            for (const [key, value] of videoCache.entries()) {
+                if (now - value.timestamp > CACHE_DURATION) {
+                    videoCache.delete(key);
+                }
+            }
+        }
+
+        res.json(responseData);
 
     } catch (error) {
         console.error('Error getting video info:', error.message);
