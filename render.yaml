@@ -1,9 +1,10 @@
 services:
   - type: web
     name: yt-convert-website
-    env: docker
+    runtime: node
     plan: free
-    dockerfilePath: ./Dockerfile
+    buildCommand: npm install
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
