@@ -1,13 +1,15 @@
 services:
   - type: web
     name: yt-convert-website
-    runtime: node
+    runtime: python
     plan: free
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port ${PORT}
     healthCheckPath: /health
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: YTDL_NO_UPDATE
+      - key: YT_DLP_NO_UPDATE
         value: '1'
+      - key: RATE_LIMIT_MAX
+        value: '8'
+      - key: RATE_LIMIT_WINDOW_MS
+        value: '120000'
